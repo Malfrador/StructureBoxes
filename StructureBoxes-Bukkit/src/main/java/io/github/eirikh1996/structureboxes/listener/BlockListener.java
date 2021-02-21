@@ -25,7 +25,6 @@ import java.io.File;
 import java.util.*;
 
 import static io.github.eirikh1996.structureboxes.utils.ChatUtils.COMMAND_PREFIX;
-import static io.github.eirikh1996.structureboxes.utils.RegionUtils.isWithinRegion;
 import static org.bukkit.Bukkit.broadcastMessage;
 
 public class BlockListener implements Listener {
@@ -101,28 +100,6 @@ public class BlockListener implements Listener {
         Direction playerDir = Direction.fromYaw(event.getPlayer().getLocation().getYaw());
         int angle = playerDir.getAngle(clipboardDir);
         final Location loc = event.getBlockPlaced().getLocation();
-        boolean exemptFromRegionRestriction = false;
-        if (!Settings.RestrictToRegionsExceptions.isEmpty()){
-            for (String exception : Settings.RestrictToRegionsExceptions){
-                if (exception == null){
-                    continue;
-                }
-                if (ChatColor.stripColor(lore.get(0)).toLowerCase().contains(exception.toLowerCase())){
-                    exemptFromRegionRestriction = true;
-                    break;
-                }
-
-            }
-        }
-        if (Settings.Debug){
-            broadcastMessage("Restrict to regions: " + Settings.RestrictToRegionsEnabled + " Outside region: " + !isWithinRegion(placed) + " Not Exempt: " + !exemptFromRegionRestriction + " unable to bypass : " + !event.getPlayer().hasPermission("structureboxes.bypassregionrestriction"));
-        }
-
-        if (Settings.RestrictToRegionsEnabled && !isWithinRegion(placed) && !exemptFromRegionRestriction && !event.getPlayer().hasPermission("structureboxes.bypassregionrestriction")){
-            event.getPlayer().sendMessage(COMMAND_PREFIX + I18nSupport.getInternationalisedString("Place - Must be within region"));
-            event.setCancelled(true);
-            return;
-        }
         ItemManager.getInstance().addItem(event.getPlayer().getUniqueId(), event.getItemInHand());
         if (Settings.Debug){
             broadcastMessage("Player direction: " + playerDir.name() + " Structure direction: " + clipboardDir.name());

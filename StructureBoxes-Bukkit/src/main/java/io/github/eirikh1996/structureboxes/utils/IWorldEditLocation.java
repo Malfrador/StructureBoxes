@@ -13,7 +13,7 @@ public class IWorldEditLocation implements WorldEditLocation {
     private final int y;
     private final int z;
     public IWorldEditLocation(Location bukkitLoc){
-        world = new BukkitWorld(bukkitLoc.getWorld());
+        world = (World) bukkitLoc.getWorld();
         worldID = bukkitLoc.getWorld().getUID();
         x = bukkitLoc.getBlockX();
         y = bukkitLoc.getBlockY();

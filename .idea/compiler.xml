@@ -6,13 +6,10 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="StructureBoxes-FactionsUUID" />
-        <module name="StructureBoxes-NonLegacy" />
-        <module name="StructureBoxes-Core" />
         <module name="structureboxes-bukkit" />
+        <module name="StructureBoxes-Core" />
+        <module name="StructureBoxes-NonLegacy" />
         <module name="StructureBoxes-WE7" />
-        <module name="StructureBoxes-WE6" />
-        <module name="structureboxes-sponge" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
