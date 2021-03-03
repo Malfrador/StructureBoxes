@@ -1,7 +1,25 @@
 package io.github.eirikh1996.structureboxes.listener;
 
+import com.boydti.fawe.Fawe;
+import com.boydti.fawe.FaweAPI;
+import com.boydti.fawe.object.RelightMode;
+import com.boydti.fawe.util.EditSessionBuilder;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.extent.transform.BlockTransformExtent;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.block.BaseBlock;
+import com.sk89q.worldedit.world.block.BlockType;
 import io.github.eirikh1996.structureboxes.Direction;
 import io.github.eirikh1996.structureboxes.Structure;
 import io.github.eirikh1996.structureboxes.StructureBoxes;
@@ -11,20 +29,23 @@ import io.github.eirikh1996.structureboxes.settings.Settings;
 import io.github.eirikh1996.structureboxes.utils.IWorldEditLocation;
 import io.github.eirikh1996.structureboxes.utils.ItemManager;
 import io.github.eirikh1996.structureboxes.utils.MathUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import jdk.nashorn.internal.ir.Block;
+import org.bukkit.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 import static io.github.eirikh1996.structureboxes.utils.ChatUtils.COMMAND_PREFIX;
+import static java.lang.Math.PI;
 import static org.bukkit.Bukkit.broadcastMessage;
 
 public class BlockListener implements Listener {
@@ -77,53 +98,61 @@ public class BlockListener implements Listener {
             event.getPlayer().sendMessage(COMMAND_PREFIX + I18nSupport.getInternationalisedString("Place - Cooldown"));
             return;
         }
-        Clipboard clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(event.getBlockPlaced().getWorld()), schematicID);
-        if (clipboard == null && schematicID.endsWith("_#")){
-            final String start = schematicID.replace("#", "");
-            File schemDir = StructureBoxes.getInstance().getWorldEditHandler().getSchemDir();
-            final String[] foundFiles = schemDir.list( (file, name) ->
-                    (name.endsWith(".schematic") || name.endsWith(".schem")) &&
-                    name.startsWith(start) &&
-                            isInteger(name.replace(start, "").replace(".schematic", "").replace(".schem", ""))
-            );
-            if (foundFiles.length == 0)
-                return;
-            final Random random = new Random();
-            String schemID = foundFiles[random.nextInt(foundFiles.length)].replace(".schematic", "").replace(".schem", "");
-            clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(event.getBlockPlaced().getWorld()), schemID);
+        Location locRaw = event.getBlockPlaced().getLocation();
+        BlockVector3 location = BlockVector3.at(locRaw.getX(), locRaw.getY(), locRaw.getZ());
+        File schemFile = new File(StructureBoxes.getInstance().getDataFolder() + "/schematics/" + schematicID + ".schem");
+        Clipboard clipboard = null;
+        try {
+            ClipboardFormat format = ClipboardFormats.findByFile(schemFile);
+            ClipboardReader reader = format.getReader(new FileInputStream(schemFile));
+            clipboard = reader.read();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        if (clipboard == null){
+        if (clipboard == null) {
+            Bukkit.getLogger().info("No clipboard found");
             return;
         }
+        Bukkit.getLogger().info("Loc: " + location.toString());
         final Location placed = event.getBlockPlaced().getLocation();
+        EditSession session = new EditSessionBuilder(FaweAPI.getWorld(event.getBlockPlaced().getWorld().getName())).relightMode(RelightMode.ALL).build();
+        Bukkit.getLogger().info("Session " + session.toString());
+        ClipboardHolder holder = new ClipboardHolder(clipboard);
         Direction clipboardDir = StructureBoxes.getInstance().getWorldEditHandler().getClipboardFacingFromOrigin(clipboard, MathUtils.bukkit2SBLoc(placed));
         Direction playerDir = Direction.fromYaw(event.getPlayer().getLocation().getYaw());
         int angle = playerDir.getAngle(clipboardDir);
-        final Location loc = event.getBlockPlaced().getLocation();
+        holder.setTransform(new AffineTransform().rotateY(angle));
+        Bukkit.getLogger().info("Angle: " + angle);
+
+        final Collection<Location> structureLocs = new HashSet<>();
+
+        int xLength = holder.getClipboard().getDimensions().getBlockX();
+        int yLength = holder.getClipboard().getDimensions().getBlockY() + 1;
+        int zLength = holder.getClipboard().getDimensions().getBlockZ();
+        World world = event.getBlock().getWorld();
+        for (int y = 0 ; y <= yLength ; y++){
+            for (int x = 0 ; x <= xLength ; x++){
+                for (int z = 0 ; z <= zLength ; z++){
+                    Location loc = event.getBlock().getLocation().add(new Location(world, x,y,z)).clone();
+                    Bukkit.getLogger().info(loc.toString());
+                    structureLocs.add(loc);
+                }
+            }
+        }
+        for (Location location1 : structureLocs) {
+            world.spawnParticle(Particle.VILLAGER_HAPPY, location1, 1);
+        }
+        Operation operation = holder.createPaste(session).to(location).ignoreAirBlocks(true).build();
+        try {
+            Bukkit.getLogger().info("Paste");
+            Operations.complete(operation);
+        } catch (WorldEditException e) {
+            e.printStackTrace();
+        }
+
+        session.flushSession();
         ItemManager.getInstance().addItem(event.getPlayer().getUniqueId(), event.getItemInHand());
-        if (Settings.Debug){
-            broadcastMessage("Player direction: " + playerDir.name() + " Structure direction: " + clipboardDir.name());
-        }
-
-        if (!StructureBoxes.getInstance().getWorldEditHandler().pasteClipboard(event.getPlayer().getUniqueId(), schematicID, clipboard, angle, new IWorldEditLocation(placed))) {
-            event.setCancelled(true);
-            return;
-        }
-        StructureManager.getInstance().getLatestStructure(event.getPlayer().getUniqueId()).setExpiry(expiry);
-
-
-
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        loc.getBlock().setType(Material.AIR);
-                    }
-                }.runTask(StructureBoxes.getInstance());
-        playerTimeMap.put(id, System.currentTimeMillis());
-
-
-
-
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -152,4 +181,25 @@ public class BlockListener implements Listener {
             return false;
         }
     }
+
+    public @NotNull Direction getClipboardFacingFromOrigin(Clipboard clipboard, Location location) {
+        BlockVector3 centerpoint = clipboard.getMinimumPoint().add(clipboard.getDimensions().divide(2));
+        BlockVector3 distance = centerpoint.subtract(clipboard.getOrigin());
+        if (Math.abs(distance.getBlockX()) > Math.abs(distance.getBlockZ())){
+            if (distance.getBlockX() > 0){
+                return Direction.EAST;
+            } else {
+                return Direction.WEST;
+            }
+        } else {
+            if (distance.getBlockZ() > 0){
+                return Direction.SOUTH;
+            } else {
+                return Direction.NORTH;
+            }
+        }
+    }
+
+
+
 }

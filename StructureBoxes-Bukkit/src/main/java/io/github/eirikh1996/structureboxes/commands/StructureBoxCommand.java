@@ -140,11 +140,11 @@ public class StructureBoxCommand implements TabExecutor {
         } else if (!schematicFile.exists() && (foundRandomSchematics == null || foundRandomSchematics.length == 0)){
             schematicName = player.getUniqueId() + "/" + schematicName;
         }
-        Clipboard clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(((Player) sender).getWorld()), schematicName);
+        /*Clipboard clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(((Player) sender).getWorld()), schematicName);
         if (Settings.MaxStructureSize > -1) {
             if (foundRandomSchematics != null) {
                 for (String name : foundRandomSchematics) {
-                    clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(((Player) sender).getWorld()), name.replace(".schematic", "").replace(".schem", ""));
+                    //clipboard = StructureBoxes.getInstance().getWorldEditHandler().loadClipboardFromSchematic(new BukkitWorld(((Player) sender).getWorld()), name.replace(".schematic", "").replace(".schem", ""));
                     if (StructureBoxes.getInstance().getWorldEditHandler().getStructureSize(clipboard) > Settings.MaxStructureSize) {
                         sender.sendMessage(COMMAND_PREFIX + I18nSupport.getInternationalisedString("Command - Structure too large") + " " + Settings.MaxStructureSize);
                         return true;
@@ -156,7 +156,7 @@ public class StructureBoxCommand implements TabExecutor {
                 return true;
             }
 
-        }
+        }*/
         ItemStack structureBox = new ItemStack((Material) Settings.StructureBoxItem);
         List<String> lore = new ArrayList<>();
         ItemMeta meta = structureBox.getItemMeta();

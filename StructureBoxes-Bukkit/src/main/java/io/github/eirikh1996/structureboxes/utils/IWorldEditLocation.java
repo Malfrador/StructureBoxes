@@ -2,6 +2,7 @@ package io.github.eirikh1996.structureboxes.utils;
 
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.world.World;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
 import java.util.UUID;
